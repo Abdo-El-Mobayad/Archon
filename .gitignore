@@ -1,12 +1,3 @@
-__pycache__
+
 .env
-.serena
-.claude/settings.local.json
-PRPs/local
-
-# CLAUDE FAST FRAMEWORK (PRIVATE)
-.claude/
 CLAUDE.md
-
-# Personal modifications - keep private  
-ABDO_PERSONAL_MODIFICATIONS/
