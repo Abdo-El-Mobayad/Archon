@@ -259,6 +259,7 @@ def register_project_tools(mcp: FastMCP):
                     # Add project_id if provided
                     if project_id:
                         params["project_id"] = project_id
+                    logger.info(f"Filtering by parent_task_id: {filter_value}, params: {params}")
                 else:
                     # Default to generic tasks endpoint
                     url = urljoin(api_url, "/api/tasks")

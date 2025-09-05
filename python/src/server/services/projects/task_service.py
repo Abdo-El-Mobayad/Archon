@@ -317,6 +317,7 @@ class TaskService:
                 task_data = {
                     "id": task["id"],
                     "project_id": task["project_id"],
+                    "parent_task_id": task.get("parent_task_id"),  # Include parent_task_id
                     "title": task["title"],
                     "description": task["description"],
                     "status": task["status"],
