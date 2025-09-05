@@ -96,6 +96,7 @@ class TaskService:
         assignee: str = "User",
         task_order: int = 0,
         feature: str | None = None,
+        parent_task_id: str | None = None,
         sources: list[dict[str, Any]] = None,
         code_examples: list[dict[str, Any]] = None,
     ) -> tuple[bool, dict[str, Any]]:
@@ -158,6 +159,9 @@ class TaskService:
 
             if feature:
                 task_data["feature"] = feature
+            
+            if parent_task_id:
+                task_data["parent_task_id"] = parent_task_id
 
             response = self.supabase_client.table("archon_tasks").insert(task_data).execute()
 
@@ -215,13 +219,19 @@ class TaskService:
             return False, {"error": f"Error creating task: {str(e)}"}
 
     def list_tasks(
-        self, project_id: str = None, status: str = None, include_closed: bool = False, exclude_large_fields: bool = False
+        self, 
+        project_id: str = None, 
+        parent_task_id: str = None,
+        status: str = None, 
+        include_closed: bool = False, 
+        exclude_large_fields: bool = False
     ) -> tuple[bool, dict[str, Any]]:
         """
         List tasks with various filters.
 
         Args:
             project_id: Filter by project ID
+            parent_task_id: Filter by parent task ID
             status: Filter by task status
             include_closed: Include tasks with 'done' status
             exclude_large_fields: Exclude created_at, updated_at fields to reduce response size
@@ -240,6 +250,10 @@ class TaskService:
             if project_id:
                 query = query.eq("project_id", project_id)
                 filters_applied.append(f"project_id={project_id}")
+            
+            if parent_task_id:
+                query = query.eq("parent_task_id", parent_task_id)
+                filters_applied.append(f"parent_task_id={parent_task_id}")
 
             if status:
                 # Validate status

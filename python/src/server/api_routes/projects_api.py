@@ -71,6 +71,9 @@ class CreateTaskRequest(BaseModel):
     assignee: str | None = "User"
     task_order: int | None = 0
     feature: str | None = None
+    parent_task_id: str | None = None
+    sources: list | None = None
+    code_examples: list | None = None
 
 
 @router.get("/projects")
@@ -530,6 +533,9 @@ async def create_task(request: CreateTaskRequest):
             assignee=request.assignee or "User",
             task_order=request.task_order or 0,
             feature=request.feature,
+            parent_task_id=request.parent_task_id,
+            sources=request.sources,
+            code_examples=request.code_examples,
         )
 
         if not success:
@@ -554,21 +560,23 @@ async def create_task(request: CreateTaskRequest):
 async def list_tasks(
     status: str | None = None,
     project_id: str | None = None,
+    parent_task_id: str | None = None,
     include_closed: bool = False,
     page: int = 1,
     per_page: int = 50,
     exclude_large_fields: bool = False,
 ):
-    """List tasks with optional filters including status and project."""
+    """List tasks with optional filters including status, project, and parent task."""
     try:
         logfire.info(
-            f"Listing tasks | status={status} | project_id={project_id} | include_closed={include_closed} | page={page} | per_page={per_page}"
+            f"Listing tasks | status={status} | project_id={project_id} | parent_task_id={parent_task_id} | include_closed={include_closed} | page={page} | per_page={per_page}"
         )
 
         # Use TaskService to list tasks
         task_service = TaskService()
         success, result = task_service.list_tasks(
             project_id=project_id,
+            parent_task_id=parent_task_id,
             status=status,
             include_closed=include_closed,
             exclude_large_fields=exclude_large_fields,

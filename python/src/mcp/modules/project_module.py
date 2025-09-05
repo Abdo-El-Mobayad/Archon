@@ -154,6 +154,7 @@ def register_project_tools(mcp: FastMCP):
         action: str,
         task_id: str = None,
         project_id: str = None,
+        parent_task_id: str = None,
         filter_by: str = None,
         filter_value: str = None,
         title: str = None,
@@ -171,8 +172,9 @@ def register_project_tools(mcp: FastMCP):
         """
         Task management with status workflow: todo → doing → review → done.
 
-        Actions: create, list, get, update, delete, archive.
+        Actions: create, list, get, update, delete, archive, explorer.
         Filter by status, project, or assignee.
+        Explorer action: Returns parent task and all its children for context.
         """
         try:
             api_url = get_api_url()
@@ -192,18 +194,24 @@ def register_project_tools(mcp: FastMCP):
 
                 # Call Server API to create task
                 async with httpx.AsyncClient(timeout=timeout) as client:
+                    task_data = {
+                        "project_id": project_id,
+                        "title": title,
+                        "description": description,
+                        "assignee": assignee,
+                        "task_order": task_order,
+                        "feature": feature,
+                        "sources": sources,
+                        "code_examples": code_examples,
+                    }
+                    
+                    # Add parent_task_id if provided
+                    if parent_task_id:
+                        task_data["parent_task_id"] = parent_task_id
+                    
                     response = await client.post(
                         urljoin(api_url, "/api/tasks"),
-                        json={
-                            "project_id": project_id,
-                            "title": title,
-                            "description": description,
-                            "assignee": assignee,
-                            "task_order": task_order,
-                            "feature": feature,
-                            "sources": sources,
-                            "code_examples": code_examples,
-                        },
+                        json=task_data,
                     )
 
                     if response.status_code == 200:
@@ -345,10 +353,75 @@ def register_project_tools(mcp: FastMCP):
                     else:
                         return json.dumps({"success": False, "error": "Failed to archive task"})
 
+            elif action == "explorer":
+                if not task_id:
+                    return json.dumps({
+                        "success": False,
+                        "error": "task_id is required for explorer action",
+                    })
+                
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    # First, get the task to find its parent (if any)
+                    response = await client.get(urljoin(api_url, f"/api/tasks/{task_id}"))
+                    
+                    if response.status_code != 200:
+                        return json.dumps({
+                            "success": False,
+                            "error": f"Task {task_id} not found"
+                        })
+                    
+                    task = response.json()
+                    
+                    # Determine the root task (parent if exists, otherwise self)
+                    root_task_id = task.get("parent_task_id") or task_id
+                    
+                    # If this task has a parent, get the parent task
+                    if task.get("parent_task_id"):
+                        parent_response = await client.get(
+                            urljoin(api_url, f"/api/tasks/{root_task_id}")
+                        )
+                        if parent_response.status_code == 200:
+                            parent_task = parent_response.json()
+                        else:
+                            parent_task = None
+                    else:
+                        # This task IS the parent
+                        parent_task = task
+                    
+                    # Get all children of the root task
+                    children_response = await client.get(
+                        urljoin(api_url, f"/api/tasks"),
+                        params={
+                            "parent_task_id": root_task_id,
+                            "include_closed": True
+                        }
+                    )
+                    
+                    children = []
+                    if children_response.status_code == 200:
+                        result = children_response.json()
+                        # Handle both array and paginated response
+                        if isinstance(result, list):
+                            children = result
+                        elif isinstance(result, dict) and "tasks" in result:
+                            children = result["tasks"]
+                    
+                    return json.dumps({
+                        "success": True,
+                        "parent_task": parent_task,
+                        "children": children,
+                        "total_children": len(children),
+                        "context": {
+                            "requested_task_id": task_id,
+                            "root_task_id": root_task_id,
+                            "is_parent": task_id == root_task_id
+                        }
+                    })
+            
             else:
                 return json.dumps({
                     "success": False,
-                    "error": f"Invalid action '{action}'. Must be one of: create, list, get, update, delete, archive",
+                    "error": f"Invalid action '{action}'. Must be one of: create, list, get, update, delete, archive, explorer",
                 })
 
         except Exception as e:
