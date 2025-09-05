@@ -172,9 +172,9 @@ def register_project_tools(mcp: FastMCP):
         """
         Task management with status workflow: todo → doing → review → done.
 
-        Actions: create, list, get, update, delete, archive, explorer.
+        Actions: create, list, get, update, delete, archive, explore.
         Filter by status, project, or assignee.
-        Explorer action: Returns parent task and all its children for context.
+        Explore action: Returns parent task and all its children for context.
         """
         try:
             api_url = get_api_url()
@@ -353,11 +353,11 @@ def register_project_tools(mcp: FastMCP):
                     else:
                         return json.dumps({"success": False, "error": "Failed to archive task"})
 
-            elif action == "explorer":
+            elif action == "explore":
                 if not task_id:
                     return json.dumps({
                         "success": False,
-                        "error": "task_id is required for explorer action",
+                        "error": "task_id is required for explore action",
                     })
                 
                 async with httpx.AsyncClient(timeout=timeout) as client:
@@ -421,7 +421,7 @@ def register_project_tools(mcp: FastMCP):
             else:
                 return json.dumps({
                     "success": False,
-                    "error": f"Invalid action '{action}'. Must be one of: create, list, get, update, delete, archive, explorer",
+                    "error": f"Invalid action '{action}'. Must be one of: create, list, get, update, delete, archive, explore",
                 })
 
         except Exception as e:
