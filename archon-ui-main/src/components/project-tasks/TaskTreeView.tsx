@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { ChevronRight, ChevronDown, Plus, Edit, Trash2, Check, MoreVertical } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, Edit, Trash2, Check, GitBranch, MoreVertical } from 'lucide-react';
 import { buildTaskTree, flattenTaskTree, TaskNode } from '../../lib/task-tree-utils';
 import { getAssigneeIcon, getAssigneeGlow, getOrderColor, getOrderGlow } from '../../lib/task-utils';
 import { useToast } from '../../contexts/ToastContext';
@@ -87,7 +87,7 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
     const hasChildren = task.children && task.children.length > 0;
     const isExpanded = expandedIds.has(task.id);
     const depth = task.depth || 0;
-    const indentStyle = { paddingLeft: `${depth * 24 + 8}px` };
+    const indentStyle = { paddingLeft: `${depth * 32 + 8}px` };
 
     return (
       <tr
@@ -95,36 +95,57 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
         className={`
           hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors
           ${selectedTaskId === task.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
-          ${depth > 0 ? 'border-l-2 border-gray-200 dark:border-gray-700' : ''}
         `}
         onClick={() => setSelectedTaskId(task.id)}
       >
         {/* Expand/Collapse & Title */}
-        <td className="py-3 px-4">
-          <div className="flex items-center gap-2" style={indentStyle}>
+        <td className="py-3 px-4 relative">
+          {/* Visual hierarchy lines */}
+          {depth > 0 && (
+            <>
+              {/* Vertical line connecting to parent */}
+              <div 
+                className="absolute top-0 bottom-0 border-l-2 border-blue-300 dark:border-blue-600"
+                style={{ left: `${(depth - 1) * 32 + 20}px` }}
+              />
+              {/* Horizontal line to this task */}
+              <div 
+                className="absolute top-1/2 h-0.5 w-4 bg-blue-300 dark:bg-blue-600"
+                style={{ 
+                  left: `${(depth - 1) * 32 + 20}px`,
+                  transform: 'translateY(-50%)'
+                }}
+              />
+            </>
+          )}
+          
+          <div className="flex items-center gap-2 relative" style={indentStyle}>
             {hasChildren ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleExpand(task.id);
                 }}
-                className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                className="p-0.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 rounded transition-colors z-10"
               >
                 {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                  <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                  <ChevronRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 )}
               </button>
             ) : (
-              <div className="w-5" /> // Spacer for alignment
+              <div className="w-5 h-5 flex items-center justify-center">
+                <div className="w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full" />
+              </div>
             )}
             
-            <span className="font-medium text-gray-900 dark:text-gray-100 flex-1">
+            <span className={`font-medium flex-1 ${depth > 0 ? 'text-gray-700 dark:text-gray-300' : 'text-gray-900 dark:text-gray-100 font-semibold'}`}>
+              {depth > 0 && <span className="text-blue-500 dark:text-blue-400 mr-2">↳</span>}
               {task.title}
               {hasChildren && (
-                <span className="ml-2 text-xs text-gray-500">
-                  ({task.children.length})
+                <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">
+                  {task.children.length} {task.children.length === 1 ? 'subtask' : 'subtasks'}
                 </span>
               )}
             </span>
@@ -237,13 +258,34 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
   };
 
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-          <tr>
-            <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
-              Task
-            </th>
+    <div className="w-full">
+      {/* Tree View Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 p-4 mb-4 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <GitBranch className="w-5 h-5 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Task Hierarchy View</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Parent tasks are shown with expand/collapse arrows. Subtasks are indented with connecting lines.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
+                <div className="flex items-center gap-2">
+                  <span>Task Hierarchy</span>
+                  <span className="text-xs font-normal text-gray-500">
+                    ({tasks.filter(t => !t.parent_task_id).length} root tasks)
+                  </span>
+                </div>
+              </th>
             <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
               Status
             </th>
@@ -272,7 +314,8 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
             displayTasks.map(renderTask)
           )}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 };
