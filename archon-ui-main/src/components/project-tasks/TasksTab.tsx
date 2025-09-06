@@ -62,7 +62,7 @@ export const TasksTab = ({
   onTasksChange: (tasks: Task[]) => void;
   projectId: string;
 }) => {
-  const [viewMode, setViewMode] = useState<'table' | 'board' | 'tree'>('board');
+  const [viewMode, setViewMode] = useState<'table' | 'board' | 'tree'>('tree');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -938,6 +938,7 @@ export const TasksTab = ({
           
             {/* View Toggle Controls */}
             <div className="flex items-center bg-white/80 dark:bg-black/90 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.1)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] backdrop-blur-md pointer-events-auto">
+              {/* Table view button commented out
               <button 
                 onClick={() => setViewMode('table')} 
                 className={`px-5 py-2.5 flex items-center gap-2 relative transition-all duration-300 ${viewMode === 'table' ? 'text-cyan-600 dark:text-cyan-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'}`}
@@ -946,6 +947,7 @@ export const TasksTab = ({
                 <span>Table</span>
                 {viewMode === 'table' && <span className="absolute bottom-0 left-[15%] right-[15%] w-[70%] mx-auto h-[2px] bg-cyan-500 shadow-[0_0_10px_2px_rgba(34,211,238,0.4)] dark:shadow-[0_0_20px_5px_rgba(34,211,238,0.7)]"></span>}
               </button>
+              */}
               <button 
                 onClick={() => setViewMode('tree')} 
                 className={`px-5 py-2.5 flex items-center gap-2 relative transition-all duration-300 ${viewMode === 'tree' ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'}`}
