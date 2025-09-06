@@ -273,6 +273,7 @@ export const TasksTab = ({
         // Create optimistic task with ALL required fields properly formatted
         const optimisticTask: Task = {
           id: tempId,
+          parent_task_id: task.parent_task_id, // Include parent_task_id for subtasks
           title: task.title,
           description: task.description || '',
           status: task.status,
@@ -294,7 +295,7 @@ export const TasksTab = ({
         // Create task on backend
         const createData: CreateTaskRequest = {
           project_id: projectId,
-          parent_task_id: (task as any).parent_task_id, // Include parent_task_id if present
+          parent_task_id: task.parent_task_id, // Include parent_task_id if present
           title: task.title,
           description: task.description,
           status: mapUIStatusToDBStatus(task.status),
@@ -692,6 +693,7 @@ export const TasksTab = ({
     // Create optimistic task with ALL required fields properly formatted
     const optimisticTask: Task = {
       id: tempId,
+      parent_task_id: (newTask as any).parent_task_id, // Include parent_task_id if present
       title: newTask.title,
       description: newTask.description || '',
       status: newTask.status,
@@ -716,6 +718,7 @@ export const TasksTab = ({
       
       const createData: CreateTaskRequest = {
         project_id: projectId,
+        parent_task_id: (newTask as any).parent_task_id, // Include parent_task_id if present
         title: newTask.title,
         description: newTask.description,
         status: mapUIStatusToDBStatus(newTask.status),
