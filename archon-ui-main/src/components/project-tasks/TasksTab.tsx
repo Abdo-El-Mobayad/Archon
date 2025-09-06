@@ -847,7 +847,7 @@ export const TasksTab = ({
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-[70vh] relative">
         {/* Main content - Table, Board, or Tree view */}
-        <div className="relative h-[calc(100vh-220px)] overflow-auto">
+        <div className="relative h-[calc(100vh-220px)] overflow-auto bg-gray-50 dark:bg-gray-950 rounded-lg p-4">
           {viewMode === 'table' ? (
             <TaskTableView
               tasks={tasks}

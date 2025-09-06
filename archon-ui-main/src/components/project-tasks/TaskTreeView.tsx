@@ -38,11 +38,27 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
   onTaskUpdate
 }) => {
   const { showToast } = useToast();
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  // Start with all tasks expanded by default
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const parentTasks = tasks.filter(task => 
+      tasks.some(t => t.parent_task_id === task.id)
+    );
+    return new Set(parentTasks.map(t => t.id));
+  });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Build the task tree structure
-  const taskTree = useMemo(() => buildTaskTree(tasks), [tasks]);
+  // Filter tasks by status
+  const filteredTasks = useMemo(() => {
+    if (statusFilter === 'all') return tasks;
+    if (statusFilter === 'active') {
+      return tasks.filter(t => t.status !== 'complete' && t.status !== 'done');
+    }
+    return tasks.filter(t => t.status === statusFilter);
+  }, [tasks, statusFilter]);
+
+  // Build the task tree structure from filtered tasks
+  const taskTree = useMemo(() => buildTaskTree(filteredTasks), [filteredTasks]);
   
   // Flatten the tree for display (considering expanded state)
   const displayTasks = useMemo(() => 
@@ -185,7 +201,15 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
         {/* Priority */}
         <td className="py-3 px-4">
           <div className="flex items-center gap-1">
-            <span className={`font-semibold ${getOrderColor(task.task_order)}`}>
+            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
+              task.task_order <= 3 
+                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
+                : task.task_order <= 6 
+                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                : task.task_order <= 10
+                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+            }`}>
               {task.task_order}
             </span>
           </div>
@@ -258,18 +282,45 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
   };
 
   return (
-    <div className="w-full">
-      {/* Tree View Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 p-4 mb-4 rounded-lg border border-blue-200 dark:border-blue-800">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-            <GitBranch className="w-5 h-5 text-green-600 dark:text-green-400" />
+    <div className="w-full bg-white dark:bg-gray-900 rounded-lg shadow-sm">
+      {/* Status Filter Bar */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              All Tasks
+            </button>
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                statusFilter === 'active'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              Active Only
+            </button>
+            <button
+              onClick={() => setStatusFilter('complete')}
+              className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                statusFilter === 'complete'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              Completed
+            </button>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Task Hierarchy View</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Parent tasks are shown with expand/collapse arrows. Subtasks are indented with connecting lines.
-            </p>
+          <div className="ml-auto text-sm text-gray-500">
+            {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
           </div>
         </div>
       </div>
@@ -279,12 +330,7 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
           <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
-                <div className="flex items-center gap-2">
-                  <span>Task Hierarchy</span>
-                  <span className="text-xs font-normal text-gray-500">
-                    ({tasks.filter(t => !t.parent_task_id).length} root tasks)
-                  </span>
-                </div>
+                Task
               </th>
             <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
               Status
