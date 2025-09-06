@@ -53,6 +53,7 @@ export interface Project {
 export interface Task {
   id: string;
   project_id: string;
+  parent_task_id?: string; // Parent task relationship
   title: string;
   description: string;
   status: DatabaseTaskStatus;
@@ -109,6 +110,7 @@ export interface UpdateProjectRequest {
 // Create task request
 export interface CreateTaskRequest {
   project_id: string;
+  parent_task_id?: string; // Optional parent task for hierarchy
   title: string;
   description: string;
   status?: DatabaseTaskStatus;

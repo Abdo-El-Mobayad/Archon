@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, LayoutGrid, Plus, Wifi, WifiOff, List } from 'lucide-react';
+import { Table, LayoutGrid, Plus, Wifi, WifiOff, List, GitBranch } from 'lucide-react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Toggle } from '../ui/Toggle';
@@ -9,6 +9,7 @@ import { useTaskSocket } from '../../hooks/useTaskSocket';
 import type { CreateTaskRequest, UpdateTaskRequest, DatabaseTaskStatus } from '../../types/project';
 import { TaskTableView, Task } from './TaskTableView';
 import { TaskBoardView } from './TaskBoardView';
+import { TaskTreeView } from './TaskTreeView';
 import { EditTaskModal } from './EditTaskModal';
 
 // Assignee utilities - removed hardcoded options, now using dynamic assignees
@@ -38,6 +39,7 @@ const mapDBStatusToUIStatus = (dbStatus: DatabaseTaskStatus): Task['status'] => 
 const mapDatabaseTaskToUITask = (dbTask: any): Task => {
   return {
     id: dbTask.id,
+    parent_task_id: dbTask.parent_task_id, // Include parent_task_id
     title: dbTask.title,
     description: dbTask.description || '',
     status: mapDBStatusToUIStatus(dbTask.status),
@@ -48,7 +50,7 @@ const mapDatabaseTaskToUITask = (dbTask: any): Task => {
     feature: dbTask.feature || 'General',
     featureColor: '#3b82f6', // Default blue color
     task_order: dbTask.task_order || 0,
-  };
+  } as any;
 };
 
 export const TasksTab = ({
@@ -60,7 +62,7 @@ export const TasksTab = ({
   onTasksChange: (tasks: Task[]) => void;
   projectId: string;
 }) => {
-  const [viewMode, setViewMode] = useState<'table' | 'board'>('board');
+  const [viewMode, setViewMode] = useState<'table' | 'board' | 'tree'>('board');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,6 +70,7 @@ export const TasksTab = ({
   const [isLoadingFeatures, setIsLoadingFeatures] = useState(false);
   const [isSavingTask, setIsSavingTask] = useState<boolean>(false);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [parentTaskId, setParentTaskId] = useState<string | undefined>(undefined);
   
   // Initialize tasks
   useEffect(() => {
@@ -291,6 +294,7 @@ export const TasksTab = ({
         // Create task on backend
         const createData: CreateTaskRequest = {
           project_id: projectId,
+          parent_task_id: (task as any).parent_task_id, // Include parent_task_id if present
           title: task.title,
           description: task.description,
           status: mapUIStatusToDBStatus(task.status),
@@ -842,7 +846,7 @@ export const TasksTab = ({
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-[70vh] relative">
-        {/* Main content - Table or Board view */}
+        {/* Main content - Table, Board, or Tree view */}
         <div className="relative h-[calc(100vh-220px)] overflow-auto">
           {viewMode === 'table' ? (
             <TaskTableView
@@ -852,6 +856,30 @@ export const TasksTab = ({
               onTaskDelete={deleteTask}
               onTaskReorder={handleTaskReorder}
               onTaskCreate={createTaskInline}
+              onTaskUpdate={updateTaskInline}
+            />
+          ) : viewMode === 'tree' ? (
+            <TaskTreeView
+              tasks={tasks}
+              onTaskView={openEditModal}
+              onTaskComplete={completeTask}
+              onTaskDelete={deleteTask}
+              onTaskCreate={(parentId) => {
+                setParentTaskId(parentId);
+                const defaultOrder = getTasksForPrioritySelection('backlog')[0]?.value || 1;
+                setEditingTask({
+                  id: '',
+                  title: '',
+                  description: '',
+                  status: 'backlog',
+                  assignee: { name: 'AI IDE Agent', avatar: '' },
+                  feature: '',
+                  featureColor: '#3b82f6',
+                  task_order: defaultOrder,
+                  parent_task_id: parentId
+                } as any);
+                setIsModalOpen(true);
+              }}
               onTaskUpdate={updateTaskInline}
             />
           ) : (
@@ -917,6 +945,14 @@ export const TasksTab = ({
                 <Table className="w-4 h-4" />
                 <span>Table</span>
                 {viewMode === 'table' && <span className="absolute bottom-0 left-[15%] right-[15%] w-[70%] mx-auto h-[2px] bg-cyan-500 shadow-[0_0_10px_2px_rgba(34,211,238,0.4)] dark:shadow-[0_0_20px_5px_rgba(34,211,238,0.7)]"></span>}
+              </button>
+              <button 
+                onClick={() => setViewMode('tree')} 
+                className={`px-5 py-2.5 flex items-center gap-2 relative transition-all duration-300 ${viewMode === 'tree' ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'}`}
+              >
+                <GitBranch className="w-4 h-4" />
+                <span>Tree</span>
+                {viewMode === 'tree' && <span className="absolute bottom-0 left-[15%] right-[15%] w-[70%] mx-auto h-[2px] bg-green-500 shadow-[0_0_10px_2px_rgba(34,197,94,0.4)] dark:shadow-[0_0_20px_5px_rgba(34,197,94,0.7)]"></span>}
               </button>
               <button 
                 onClick={() => setViewMode('board')} 
