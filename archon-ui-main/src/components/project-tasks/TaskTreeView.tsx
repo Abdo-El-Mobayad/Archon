@@ -1,9 +1,24 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronRight, ChevronDown, Plus, Edit, Trash2, Check, MoreVertical } from 'lucide-react';
-import { Task } from '../../types/project';
 import { buildTaskTree, flattenTaskTree, TaskNode } from '../../lib/task-tree-utils';
 import { getAssigneeIcon, getAssigneeGlow, getOrderColor, getOrderGlow } from '../../lib/task-utils';
 import { useToast } from '../../contexts/ToastContext';
+
+// Use a local Task interface that matches what TasksTab expects
+interface Task {
+  id: string;
+  parent_task_id?: string;
+  title: string;
+  description: string;
+  status: 'backlog' | 'in-progress' | 'review' | 'complete';
+  assignee: {
+    name: string;
+    avatar: string;
+  };
+  feature: string;
+  featureColor: string;
+  task_order: number;
+}
 
 interface TaskTreeViewProps {
   tasks: Task[];
@@ -51,12 +66,16 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
   // Get status badge style
   const getStatusBadge = (status: string) => {
     const statusMap = {
+      'backlog': { text: 'Backlog', class: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+      'in-progress': { text: 'In Progress', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+      'review': { text: 'Review', class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' },
+      'complete': { text: 'Complete', class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+      // Also support database status format
       'todo': { text: 'Backlog', class: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
       'doing': { text: 'In Progress', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
-      'review': { text: 'Review', class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' },
       'done': { text: 'Complete', class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' }
     };
-    const config = statusMap[status as keyof typeof statusMap] || statusMap.todo;
+    const config = statusMap[status as keyof typeof statusMap] || statusMap.backlog;
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.class}`}>
         {config.text}
@@ -120,9 +139,9 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
         {/* Assignee */}
         <td className="py-3 px-4">
           <div className="flex items-center gap-2">
-            {getAssigneeIcon(task.assignee as any)}
+            {getAssigneeIcon(typeof task.assignee === 'string' ? task.assignee : task.assignee.name)}
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              {task.assignee}
+              {typeof task.assignee === 'string' ? task.assignee : task.assignee.name}
             </span>
           </div>
         </td>
@@ -181,7 +200,7 @@ export const TaskTreeView: React.FC<TaskTreeViewProps> = ({
             </button>
 
             {/* Complete */}
-            {task.status !== 'done' && (
+            {task.status !== 'done' && task.status !== 'complete' && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();

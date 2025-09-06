@@ -1,4 +1,16 @@
-import { Task } from '../types/project';
+// Define Task interface to match the UI components
+export interface Task {
+  id: string;
+  parent_task_id?: string;
+  title: string;
+  description: string;
+  status: 'backlog' | 'in-progress' | 'review' | 'complete' | 'todo' | 'doing' | 'done';
+  assignee: string | { name: string; avatar: string };
+  feature?: string;
+  featureColor?: string;
+  task_order: number;
+  [key: string]: any; // Allow additional properties
+}
 
 export interface TaskNode extends Task {
   children: TaskNode[];
